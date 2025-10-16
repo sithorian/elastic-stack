@@ -50,7 +50,7 @@ Keep in mind that, every config file will be dynamically generated according to 
 
 ## STACK TOPOLOGY
 
-![topology](./docs/stack-topology.svg)
+![topology](./docs/topology.png)
 
 When you run the script, everything is quite straightforward and you can navigate yourself through menus.
 
