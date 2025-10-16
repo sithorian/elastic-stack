@@ -102,4 +102,5 @@ As I mentioned, this is a simple script (but more than 3K lines), its main purpo
 I believe with no or just a few minor changes, you can even use it for your production environments too.
 Since Docker is a very solid environment and if you have a sufficient host with some cpu, mem and disk io/speed, it will handle lots of data and EPS rates.
 
-# I strongly suggest you to use this script in a host which has at least 8 CPU cores with at least 32 GB of memory. 
+# I strongly suggest you to use this script in a host which has at least 8 CPU cores with at least 32 GB of memory. Since the resource distribution is done automatically, you will end up with a very small java heap memory size in hot node(s) which dramatically affects the overall performance.
+## You can find the default values and resource weight distribution in script between the lines of 130 and 150.
