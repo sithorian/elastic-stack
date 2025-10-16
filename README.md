@@ -16,4 +16,4 @@ The challenges during a standart ES Cluster deployment are
 
 To minimize these requirements, I have used the topology as shown below.
 
-![System Topology](./stack-topology.png)
+![System Topology](./stack-topology.svg)
