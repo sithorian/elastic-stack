@@ -4,13 +4,6 @@
 # with optional Vectra Stream content. 
 # Main goal is to simplify dev/test deployment with all the necessary
 # configuration.
-# author be liable for any claim, damages, or other liability, whether in an action 
-# of contract, tort, or otherwise, arising from, out of, or in connection with the 
-# script or the use or other dealings in the script.
-#
-# Unauthorized copying, modification, or distribution of this script, 
-# via any medium, is strictly prohibited without prior written permission 
-# from Vectra AI.
 
 ### variables ###
 STREAM_INPUT_PORT=9009                  # Port to set in Stream 
