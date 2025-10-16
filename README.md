@@ -23,8 +23,12 @@ Several components have been used in this stack.
   - Kibana
   - Elasticsearch Nodes
 
+Stack Topology
+
+![topology](./screenshots/stack-topology.svg)
+
 When you run the script, everything is quite straightforward and you can navigate yourself through menus.
 
-![Topology Diagram](./screenshots/main-menu.png)
+![main-menu](./screenshots/main-menu.png)
 
 
