@@ -30,5 +30,9 @@ Stack Topology
 When you run the script, everything is quite straightforward and you can navigate yourself through menus.
 
 ![main-menu](./screenshots/main-menu.png)
+![os-menu](./screenshots/os_system-menu.png)
+![container-menu](./screenshots/container-menu.png)
+![elastic-menu](./screenshots/elastic-menu.png)
+![vectra-menu](./screenshots/vectra-menu.png)
 
 
