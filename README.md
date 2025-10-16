@@ -33,9 +33,9 @@ Because this is a closed environment, I did not enable security in ES side so ev
 
 ### URLs to be created
 HAProxy Stats (realtime metrics):   https://<HOST IP/FQDN>/stats<br>
-Dozzle (container monitoring):      https://<HOST IP/FQDN>/dozzle
-Portainer:                          https://<HOST IP/FQDN>:1443
-Kibana:                             https://<HOST IP/FQDN>
+Dozzle (container monitoring):      https://<HOST IP/FQDN>/dozzle<br>
+Portainer:                          https://<HOST IP/FQDN>:1443<br>
+Kibana:                             https://<HOST IP/FQDN><br>
 RAW TCP Listener (can be changed):  <HOST IP/FQDN>:9009
 
 
