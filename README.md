@@ -32,12 +32,12 @@ Several components have been used in this stack.
 Because this is a closed environment, I did not enable security in ES side so everything is working on http but HAProxy is used for reverse proxying and I have implemented a http basic authentication with a self-signed certificate. It is possible to create CSR and sign it with your local CA and then import back into stack host or you can directly put your PEM certificate into it. It is also possible to add your own authentication mechanism into haproxy.cfg like mTLS, Oath2, etc. since every conf file of each component will be placed into the same folder for easier management.
 
 ### URLs to be created
-  - HAProxy Stats (realtime metrics): https://<HOST IP/FQDN>/stats
-  - Dozzle (container monitoring): https://<HOST IP/FQDN>/dozzle
-  - Portainer:                      https://<HOST IP/FQDN>:1443
-  - Kibana:   https://<HOST IP/FQDN>
+HAProxy Stats (realtime metrics):   https://<HOST IP/FQDN>/stats
+Dozzle (container monitoring):      https://<HOST IP/FQDN>/dozzle
+Portainer:                          https://<HOST IP/FQDN>:1443
+Kibana:                             https://<HOST IP/FQDN>
+RAW TCP Listener (can be changed):  <HOST IP/FQDN>:9009
 
-  - RAW TCP Listener(can be changed):   *<HOST IP/FQDN>:9009
 
 ### folder/mount structure
 These directories are selected for testing. The script will offer you to choose each storage destination individually so you can easily separate different data tiers into different mounts of OS by using local, SMB, NFS, etc.
