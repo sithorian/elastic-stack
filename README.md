@@ -32,7 +32,7 @@ Several components have been used in this stack.
 Because this is a closed environment, I did not enable security in ES side so everything is working on http but HAProxy is used for reverse proxying and I have implemented a http basic authentication with a self-signed certificate. It is possible to create CSR and sign it with your local CA and then import back into stack host or you can directly put your PEM certificate into it. It is also possible to add your own authentication mechanism into haproxy.cfg like mTLS, Oath2, etc. since every conf file of each component will be placed into the same folder for easier management.
 
 ### URLs to be created
-HAProxy Stats (realtime metrics):   https://<HOST IP/FQDN>/stats
+HAProxy Stats (realtime metrics):   https://<HOST IP/FQDN>/stats<br>
 Dozzle (container monitoring):      https://<HOST IP/FQDN>/dozzle
 Portainer:                          https://<HOST IP/FQDN>:1443
 Kibana:                             https://<HOST IP/FQDN>
