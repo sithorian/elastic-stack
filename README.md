@@ -15,3 +15,5 @@ The challenges during a standart ES Cluster deployment are
   - Security
 
 To minimize these requirements, I have used the topology as shown below.
+
+![System Topology](./docs/topology.png)
