@@ -31,7 +31,7 @@ Because this is a closed environment, I did not enable security in ES side so ev
 
 ### folder/mount structure
 These directories are for testing. The script will offer you to choose each storage destination individually so you can easily separate different data tiers into different mounts of OS.
-![dirs](./screenshots/folder.png)
+![dirs](./screenshots/folders.png)
 
 ### config files
 ![configs](./screenshots/config-files.png)
