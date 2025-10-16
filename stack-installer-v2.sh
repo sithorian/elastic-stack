@@ -29,7 +29,7 @@ JVM_MEM=()
 declare -A DATA
 declare -A NODE_LABEL
 
-# get current script's woprking dir
+# get current script's working dir
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # get system hostname / fqdn
