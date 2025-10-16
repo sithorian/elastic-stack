@@ -13,7 +13,3 @@ The challenges during a standart ES Cluster deployment are
   - Planning
   - Performance
   - Security
-
-To minimize these requirements, I have used the topology as shown below.
-
-<img src="./stack-topology.svg?sanitize=true">
