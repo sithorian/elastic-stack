@@ -33,8 +33,11 @@ Because this is a closed environment, I did not enable security in ES side so ev
 
 ### URLs to be created
 https://<HOST IP/FQDN>/stats  => HAProxy Stats (realtime metrics)
+
 https://<HOST IP/FQDN>/dozzle => Dozzle (container monitoring)
+
 https://<HOST IP/FQDN>:1443   => Portainer
+
 https://<HOST IP/FQDN>        => Kibana
 
 <HOST IP/FQDN>:9009           => Default RAW TCP (can be changed)
