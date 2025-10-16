@@ -50,7 +50,7 @@ Keep in mind that, every config file will be dynamically generated according to 
 
 ## STACK TOPOLOGY
 
-![topology](./docs/topology.png)
+<img src="./docs/topology.png" alt="System Topology" width="120%"/>
 
 When you run the script, everything is quite straightforward and you can navigate yourself through menus.
 
