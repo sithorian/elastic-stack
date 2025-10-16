@@ -6,12 +6,12 @@ This is still in testing! I am not a professional coder so expect some typos and
 It is currently tested on Debian/Ubuntu and Centos/Redhat. Alpine Linux support will be added too.
 
 My goal is to simplify Elasticsearch Cluster deployment as possible as simple and flexible. Therefor I have decided to use docker environment with some additional flavors.
-The challenges during a standart ES Cluster deployment
+The challenges during a standart ES Cluster deployment are
   - System tunings
   - Memory assignments
   - Storage issues
   - Planning
-  - Peformance
+  - Performance
   - Security
 
 To minimize these requirements, I have used the topology as shown below.
