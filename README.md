@@ -32,11 +32,11 @@ Because this is a closed environment, I did not enable security in ES side so ev
 
 ### folder/mount structure
 These directories are selected for testing. The script will offer you to choose each storage destination individually so you can easily separate different data tiers into different mounts of OS by using local, SMB, NFS, etc.
-![dirs](./screenshots/folders.png)
+![dirs](./docs/folders.png)
 
 You can easily access every config file from a single directory so if you want to change or add something, you just need to restarft container.
 ### config files
-![configs](./screenshots/config-files.png)
+![configs](./docs/config-files.png)
 
 I preferred Fluent-Bit rather than Logstash as it is really lightweight, very high performance with a very small memory requirement. For my needs, Fluent-Bit is more than enough but feel free to implement your own Logstash instance.
 
@@ -45,31 +45,31 @@ As you can see from the topology below, HAProxy will also provide load balancing
 Keep in mind that, every config file will be dynamically generated according to you choices prior to deployment. These choices can be done through menus.
 
 ### es planning
-![es](./screenshots/es-planning.png)
+![es](./docs/es-planning.png)
 
 
 ## STACK TOPOLOGY
 
-![topology](./screenshots/stack-topology.svg)
+![topology](./docs/stack-topology.svg)
 
 When you run the script, everything is quite straightforward and you can navigate yourself through menus.
 
 ## SCREENSHOTS
 
 ### Main Menu
-![main-menu](./screenshots/main-menu.png)
+![main-menu](./docs/main-menu.png)
 
 ### OS/System Menu
-![os-menu](./screenshots/os_system-menu.png)
+![os-menu](./docs/os_system-menu.png)
 
 ### Containers Menu
-![container-menu](./screenshots/container-menu.png)
+![container-menu](./docs/container-menu.png)
 
 ### Elasticsearch Menu
-![elastic-menu](./screenshots/elastic-menu.png)
+![elastic-menu](./docs/elastic-menu.png)
 
 ### Vectra Related
-![vectra-menu](./screenshots/vectra-menu.png)
+![vectra-menu](./docs/vectra-menu.png)
 
 ## ENDNOTE
 As I mentioned, this is a simple script (but more than 3K lines), its main purpose is to make life easier. 
