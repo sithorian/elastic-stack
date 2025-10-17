@@ -3,6 +3,7 @@ Full stack with lots of features written in bash
 
 ## DISCLAIMER
 This is still in testing! I am not a professional coder so expect some typos and not-efficient approaches so don't blame me :)
+
 Features to be added
   - ÈS security option (optional)
   - Logstash (optional)
