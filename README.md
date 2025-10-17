@@ -63,10 +63,12 @@ RAW TCP Listener (can be changed)<br>
 
 ### folder/mount structure
 These directories below are selected for testing. The script will offer you to choose each storage destination individually so you can easily separate different data tiers into different mounts of OS by using local, SMB, NFS, etc.
+
 ![dirs](./docs/folders.png)
 
 You can easily access every config file from a single directory so if you want to change or add something, you just need to restart it container. By default after a config file modification, the script will ask for if you want to restart the related container.
 ### config files
+
 ![configs](./docs/config-files.png)
 
 I preferred Fluent-Bit rather than Logstash as it is really lightweight, very high performance with a very small memory footprint. For my needs, Fluent-Bit is more than enough but feel free to implement your own Logstash instance.
@@ -76,6 +78,7 @@ As you can see from the topology below, HAProxy will also provide load balancing
 Keep in mind that, every config file will be dynamically generated according to you choices prior to deployment. These choices can be done through menus.
 
 ### es planning
+
 ![es](./docs/es-planning.png)
 
 
@@ -89,18 +92,23 @@ When you run the script, everything is quite straightforward and you can navigat
 ## SCREENSHOTS
 
 ### Main Menu
+
 ![main-menu](./docs/main-menu.png)
 
 ### OS/System Menu
+
 ![os-menu](./docs/os_system-menu.png)
 
 ### Containers Menu
+
 ![container-menu](./docs/container-menu.png)
 
 ### Elasticsearch Menu
+
 ![elastic-menu](./docs/elastic-menu.png)
 
 ### Vectra Stream Related
+
 ![vectra-menu](./docs/vectra-menu.png)
 
 ## ENDNOTE
