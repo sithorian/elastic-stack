@@ -7,7 +7,7 @@
 
 ### variables ###
 STREAM_INPUT_PORT=9009                  # Port to set in Stream 
-ES_VERSION="9.1.4"                      # Elasticsearch+Kibana container version
+ES_VERSION="9.1.5"                      # Elasticsearch+Kibana container version
 ES_BOOTSTRAP_PASSWORD="Elastic123!"     # Bootstrap password for initialization / can be changed later from Kibana
 CLUSTER_NAME="stream"                   # Elasticsearch cluster name
 DOCKER=""
@@ -386,7 +386,7 @@ check() {
     # check if system params, mandatory packages, docker and self signed cert exist
     if [[ "$type" == "system" ]]; then
         if [[ ! -f "/etc/sysctl.d/99-stack-sysctl.conf"  ]]; then set "sysparams"; s 1; fi
-        if ! check "package" "whois"; then install "package"; s 1; fi
+        if ! check "package" "openssl"; then install "package"; s 1; fi
         if ! q command -v docker; then install "docker"; fi
         check "cert"
     fi
@@ -1830,9 +1830,9 @@ install() {
             packages=("$2")
             printf "🧩 ${Y}Installing requested package: $2${N}\n"
         else
-            packages=( "bc" "ca-certificates" "curl" "git" "jq" "nano" "ncat" "net-tools" "openssl" "tcpdump" "whois" "vim" )
-            apt_packages=( "apache2-utils" "bsdmainutils" )
-            dnf_packages=( "epel-release" )
+            packages=( "bc" "ca-certificates" "curl" "git" "jq" "nano" "ncat" "openssl" )
+            apt_packages=()
+            dnf_packages=()
 
             if [[ "$installer" == "apt-get" ]]; then packages+=("${apt_packages[@]}"); fi
             if [[ "$installer" == "dnf" ]]; then packages+=("${dnf_packages[@]}"); fi
@@ -2014,7 +2014,7 @@ ${C}   the table. MB/day can vary from 25 to 50 (Current:${Y}${MB_PER_IP_DAY}${C
 ${Y}$(show "border" "*" 38 "h")
 ${G}(1)${N} Deployment Plan: ${C}Add / Modify 
 ${G}(2)${N} Deployment Plan: ${C}Automatic
-${G}(3) ⚠️  ${Y}Deploy Elasticsearch ⚠️
+${G}(3) ${Y}⚠️  Deploy Elasticsearch ⚠️
 
 ${G}(9)${N} Modify Elasticsearch Conf of Nodes
 
@@ -2523,14 +2523,14 @@ reset_system() {
     printf "${Y}Uninstalling additional packages...⏳${N}"
     case "$installer" in
         apt-get)
-            q sudo apt-get remove --purge -y apache2-utils bsdmainutils bc ca-certificates curl git jq nano ncat net-tools openssl tcpdump whois vim >/dev/null 2>&1
+            q sudo apt-get remove --purge -y bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
             q sudo apt-get autoremove -y >/dev/null 2>&1
             ;;
         dnf)
-            q sudo "$installer" remove -y apache2-utils bsdmainutils epel-release bc ca-certificates curl git jq nano ncat net-tools openssl tcpdump whois vim >/dev/null 2>&1
+            q sudo "$installer" remove -y bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
             ;;
         apk)
-            q sudo apk del apache2-utils bsdmainutils epel-release bc ca-certificates curl git jq nano ncat net-tools openssl tcpdump whois vim >/dev/null 2>&1
+            q sudo apk del bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
             ;;
     esac
     printf "\r${G}Uninstalling additional packages...✅${N}\n"
