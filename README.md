@@ -7,8 +7,8 @@ This is still in testing! I am not a professional coder so expect some typos and
 Features to be added
   - ÈS security option (optional)
   - Logstash (optional)
-  - ES Fleet Server + Agent
-  - Beats
+  - ES Fleet Server + Agent (optional)
+  - Beats (optional)
 
 It is currently tested on Debian/Ubuntu and Centos/Redhat. 
 Alpine Linux support will be added too.
