@@ -3,6 +3,11 @@ Full stack with lots of features written in bash
 
 ## DISCLAIMER
 This is still in testing! I am not a professional coder so expect some typos and not-efficient approaches so don't blame me :)
+Features to be added
+  - ÈS security option (optional)
+  - Logstash (optional)
+  - ES Fleet Server + Agent
+  - Beats
 
 It is currently tested on Debian/Ubuntu and Centos/Redhat. 
 Alpine Linux support will be added too.
