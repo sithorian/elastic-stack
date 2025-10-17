@@ -35,23 +35,23 @@ You can also add your own authentication mechanism into haproxy.cfg like mTLS, O
 
 When you call one of these URLs below, it will ask for user/password.
 Default credential:
-### username: admin
-### password: Elastic123!
+username: admin
+password: Elastic123!
 
 ### URLs to be created
 HAProxy Stats (realtime metrics)<br>
 https://<HOST IP/FQDN>/stats
 
-Dozzle (container monitoring)
+Dozzle (container monitoring)<br>
 https://<HOST IP/FQDN>/dozzle
 
-Portainer
+Portainer<br>
 https://<HOST IP/FQDN>:1443
 
-Kibana
+Kibana<br>
 https://<HOST IP/FQDN>
 
-RAW TCP Listener (can be changed)
+RAW TCP Listener (can be changed)<br>
 <HOST IP/FQDN>:9009
 
 
