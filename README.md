@@ -38,6 +38,7 @@ Default credential:
 ### username: admin
 ### password: Elastic123!
 
+
 ### URLs to be created
 HAProxy Stats (realtime metrics)
 https://<HOST IP/FQDN>/stats
