@@ -109,30 +109,89 @@ else
 fi
 
 # detect OS and package manager
-declare -A oss=(
-    [/etc/alpine-release]="apk"
-    [/etc/debian_version]="apt-get"
-    [/etc/lsb-release]="apt-get"
-    [/etc/centos-release]="dnf"
-    [/etc/redhat-release]="dnf"
-    [/etc/fedora-release]="dnf"
-)
+detect_os() {
+    # initialize
+    OS_ID=""
+    PKG_MANAGER="unknown"
 
-pkgmanager() {
-    for f in "${!oss[@]}"; do
-        if [[ -f "$f" ]]; then
-            echo "${oss[$f]}"
-            return 0
-        fi
-    done
-    echo "unknown"
-    return 1
+    # Prefer the canonical os-release if present
+    if [[ -r /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        OS_ID=${ID,,}            # lowercase id, e.g. ubuntu, debian
+    fi
+
+    # Fallback mapping if /etc/os-release wasn't available or empty
+    if [[ -z "$OS_ID" ]]; then
+        declare -A _file_map=(
+            [/etc/alpine-release]=alpine
+            [/etc/debian_version]=debian
+            [/etc/lsb-release]=ubuntu
+            [/etc/centos-release]=centos
+            [/etc/redhat-release]=rhel
+            [/etc/fedora-release]=fedora
+        )
+        for f in "${!_file_map[@]}"; do
+            if [[ -f "$f" ]]; then
+                OS_ID=${_file_map[$f]}
+                break
+            fi
+        done
+    fi
+
+    # Decide package manager by OS_ID or ID_LIKE
+    case "$OS_ID" in
+        ubuntu|debian|linuxmint)
+            PKG_MANAGER="apt-get" ;;
+        alpine)
+            PKG_MANAGER="apk" ;;
+        fedora|centos|rhel|rocky|ol)
+            # modern RedHat-family prefer dnf; fallback to yum if not present
+            if command -v dnf >/dev/null 2>&1; then
+                PKG_MANAGER="dnf"
+            else
+                PKG_MANAGER="yum"
+            fi
+            ;;
+    esac
+
+    # Final guard: if still unknown, try binary presence
+    if [[ "$PKG_MANAGER" == "unknown" ]]; then
+        if command -v apt-get >/dev/null 2>&1; then PKG_MANAGER="apt-get"; fi
+        if command -v dnf >/dev/null 2>&1; then PKG_MANAGER="dnf"; fi
+        if command -v yum >/dev/null 2>&1; then PKG_MANAGER="yum"; fi
+        if command -v apk >/dev/null 2>&1; then PKG_MANAGER="apk"; fi
+    fi
+
+    # Export for other functions to read (optional)
+    export OS_ID PKG_MANAGER
 }
 
+# detect OS and package manager
+#declare -A oss=(
+#    [/etc/alpine-release]="apk"
+#    [/etc/debian_version]="apt-get"
+#    [/etc/lsb-release]="apt-get"
+#    [/etc/centos-release]="dnf"
+#    [/etc/redhat-release]="dnf"
+#    [/etc/fedora-release]="dnf"
+#)
+#
+#pkgmanager() {
+#    for f in "${!oss[@]}"; do
+#        if [[ -f "$f" ]]; then
+#            echo "${oss[$f]}"
+#            return 0
+#        fi
+#    done
+#    echo "unknown"
+#    return 1
+#}
 
-# Default resource distribution
-# The sum of below components are equal to RESERVED_MEM
-# Can be change according to host machine but these are the min requirements
+
+# default resource distribution
+# the sum of below components are equal to RESERVED_MEM
+# can be change according to host machine but these are the min requirements
 DOZZLE_MEM="128m"
 FB_MEM="2g"
 FB_STORAGE="20G"
@@ -142,10 +201,10 @@ PORT_MEM="128m"
 RESERVED_MEM=10; setvar "RESERVED_MEM" "RESERVED_MEM"    # reserved for OS + sidecars
 
 # resource distibution / weights
-WEIGHT_HOT=8;   setvar "WEIGHT_HOT" "WEIGHT_HOT"   # hot nodes are 8x heavier
-WEIGHT_WARM=1;  setvar "WEIGHT_WARM" "WEIGHT_WARM" # warm nodes baseline
+WEIGHT_HOT=9;   setvar "WEIGHT_HOT" "WEIGHT_HOT"   # hot nodes are 8x heavier
+WEIGHT_WARM=2;  setvar "WEIGHT_WARM" "WEIGHT_WARM" # warm nodes baseline
 WEIGHT_COLD=1;  setvar "WEIGHT_COLD" "WEIGHT_COLD" # cold nodes are lightest
-MASTER_FIXED=8; setvar "MASTER_FIXED" "MASTER_FIXED"  # each master gets fixed GB
+MASTER_FIXED=8; setvar "MASTER_FIXED" "MASTER_FIXED"  # each master gets fixed memory
 
 # needed for disk usage calculation
 MB_PER_IP_DAY=35   # MB/day per IP (avg between 25–50 MB)
@@ -286,7 +345,7 @@ check() {
     if [[ "$type" == "package" ]]; then
         local pkg="$2"
         local installer
-        installer=$(pkgmanager)
+        installer=$(detect_os)
         
         if command -v dpkg >/dev/null 2>&1; then dpkg -s "$pkg" &>/dev/null && return 0 || return 1
         elif command -v rpm >/dev/null 2>&1; then rpm -q "$pkg" &>/dev/null && return 0 || return 1
@@ -300,7 +359,7 @@ check() {
             get "elastic"
         fi
     fi
-    # check if elasticsearch node paths exists for each tier (hot,warm and cold)
+    # check if elasticsearch node paths exists for each tier (hot, warm and cold)
     if [[ "$type" == "storage" ]]; then
         local total_data_gb="$2"
 
@@ -312,7 +371,7 @@ check() {
         (( keep_hot < 0 )) && keep_hot=0
         (( keep_warm < 0 )) && keep_warm=0
         (( keep_cold < 0 )) && keep_cold=0
-
+        
         # Daily ingest in GB
         if [[ -z "$RETENTION_DAYS" ]]; then RETENTION_DAYS=1; fi
         local daily_ingest_gb=$(( total_data_gb / RETENTION_DAYS ))
@@ -419,7 +478,7 @@ compare() {
         local keep_hot=${KEEP_HOT:-1}
         local keep_warm
         local keep_cold
-
+        
         if [[ -n "${KEEP_WARM:-}" ]]; then
             keep_warm=$KEEP_WARM
         else
@@ -435,7 +494,7 @@ compare() {
         (( keep_hot < 0 )) && keep_hot=0
         (( keep_warm < 0 )) && keep_warm=0
         (( keep_cold < 0 )) && keep_cold=0
-
+        
         # daily ingest in GB
         local daily_ingest_gb=$DAILY_INGEST
 
@@ -656,16 +715,16 @@ deploy() {
         for i in $(seq 1 "$TOTAL_COUNT"); do
             local name="${NODE_LABEL[$i]}"
             local type="${NODE_TYPE[$i]}"
-            if [[ $type == "master" ]] then
+            if [[ $type == "master" ]]; then
                 local datadir="${DATA[master]}/$name/data"
                 local logdir="${DATA[master]}/$name/logs"
-            elif [[ $type == "hot" ]] then
+            elif [[ $type == "hot" ]]; then
                 local datadir="${DATA[hot]}/$name/data"
                 local logdir="${DATA[hot]}/$name/logs"
-            elif [[  $type == "warm" ]] then
+            elif [[  $type == "warm" ]]; then
                 local datadir="${DATA[warm]}/$name/data"
                 local logdir="${DATA[warm]}/$name/logs"
-            elif [[  $type == "cold" ]] then
+            elif [[  $type == "cold" ]]; then
                 local datadir="${DATA[cold]}/$name/data"
                 local logdir="${DATA[cold]}/$name/logs"
             fi
@@ -706,10 +765,6 @@ deploy() {
         deploy "kibana"; s 1
         # update haproxy config and reload
         generate "haproxy"; container "restart" "haproxy"; s 1
-        # vectra content check / reinitialize
-        check "vectra"
-        # initialize/start fluent-bit
-        container "ifexists" "fluent-bit" && container "start" "fluent-bit" || deploy "fluent-bit"
     fi
 
     if [[ "$1" == "fluent-bit" ]]; then
@@ -1597,7 +1652,7 @@ get() {
 
         # hot tier days
         local input
-        if [[ $HOT_COUNT -gt 0 ]]; then
+        if [[ $HOT_COUNT -gt 0 ]] && [[ $WARM_COUNT -gt 0 || $COLD_COUNT -gt 0 ]]; then
             while true; do
                 read -rp "👉 Day(s) to keep in hot tier 🔥 [default: ${RETENTION_DAYS}]: " input
                 input="${input:-$RETENTION_DAYS}"
@@ -1632,6 +1687,7 @@ get() {
             done
         else KEEP_COLD=0
         fi
+
         # calculating rough daily ingest value 
         DAILY_INGEST=$(( TOTAL_IPS * MB_PER_IP_DAY / 1024 ))
                 
@@ -1718,7 +1774,7 @@ get() {
                 DATA[hot]="$hot_path";    setvar "DATA[hot]"   "hot_path"
                 DATA[warm]="$warm_path";  setvar "DATA[warm]"  "warm_path"
                 DATA[cold]="$cold_path";  setvar "DATA[cold]"  "cold_path"
-
+            
                 for path in "$data_path/master" "$hot_path" "$warm_path" "$cold_path"; do
                     sudo mkdir -p "$path" && sudo chown -R "$USER:docker" "$path"
                 done
@@ -1733,8 +1789,8 @@ get() {
 }
 
 install() {
-    local installer
-    installer=$(pkgmanager)
+    # get os + package manager
+    detect_os
 
     # docker installation
     if [[ "$1" == "docker" ]]; then
@@ -1743,10 +1799,10 @@ install() {
         
         # packages to be removed before docker installation
         local toberemoved=( "containerd" "docker" "docker-client" "docker-client-latest" "docker.io" "docker-doc" "docker-compose" "podman-docker" "runc" "docker-common" "docker-latest" "docker-latest-logrotate" "docker-logrotate" "docker-engine" )
-        for pkg in "${toberemoved[@]}"; do q sudo $installer remove $pkg; done
+        for pkg in "${toberemoved[@]}"; do q sudo $PKG_MANAGER remove $pkg; done
         
         # debian based distros        
-        if [[ "$installer" == "apt-get" ]]; then
+        if [[ "$OS_ID" == "debian" ]]; then
             qe sudo install -m 0755 -d /etc/apt/keyrings
             qe sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
             qe sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -1755,14 +1811,25 @@ install() {
               $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
               sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
             q sudo apt-get update -y
+            q sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+        # ubuntu based distros        
+        elif [[ "$OS_ID" == "ubuntu" ]]; then
+            qe sudo install -m 0755 -d /etc/apt/keyrings
+            qe sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            qe sudo chmod a+r /etc/apt/keyrings/docker.asc
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+              $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+              sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            q sudo apt-get update -y
             q sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin     -y
         # centos/rhel/fedora distro
-        elif [[ "$installer" == "dnf" ]]; then
-            q sudo $installer -y install dnf-plugins-core
-            q sudo $installer config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-            q sudo $installer -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        elif [[ "$OS_ID" =~ (centos|redhat) ]]; then
+            qe sudo $PKG_MANAGER -y install dnf-plugins-core
+            qe sudo $PKG_MANAGER config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            qe sudo $PKG_MANAGER -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         # alpine distro
-        elif [[ "$installer" == "apk" ]]; then
+        elif [[ "$PKG_MANAGER" == "apk" ]]; then
             echo "apk"
         fi 
         printf "\r📦 ${G}Installing docker...✅\n"
@@ -1780,8 +1847,8 @@ install() {
             printf "✅ ${G}Docker Verification Done...proceeding\n"
     
             # creating default net
-            printf "🛠️ ${Y}Creating Default Docker Network"; q sudo docker network create -d bridge esnet
-            printf "\r🛠️ ${G}Creating Default Docker Network...✅\n"
+            printf "🛠️  ${Y}Creating Default Docker Network"; q sudo docker network create -d bridge esnet
+            printf "\r🛠️  ${G}Creating Default Docker Network...✅\n"
             printf "   🌐 ${N}Created Docker network: ${C}esnet\n\n"
 
             # pulling necessary images for using later
@@ -1818,12 +1885,8 @@ install() {
 
     if [[ "$1" == "package" ]]; then
         # sudo check
-        if ! q command -v sudo; then install "sudo"; fi; s 1
+        if ! q command -v sudo || [[ ! -f "/etc/sudoers.d/stack" ]]; then install "sudo"; fi; s 1
         
-        # get package manager
-        local installer
-        installer=$(pkgmanager)
-
         # use $2 otherwise default list
         local packages=()
         if [[ -n "$2" ]]; then
@@ -1834,54 +1897,56 @@ install() {
             apt_packages=()
             dnf_packages=()
 
-            if [[ "$installer" == "apt-get" ]]; then packages+=("${apt_packages[@]}"); fi
-            if [[ "$installer" == "dnf" ]]; then packages+=("${dnf_packages[@]}"); fi
+            if [[ "$PKG_MANAGER" == "apt-get" ]]; then packages+=("${apt_packages[@]}"); fi
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then packages+=("${dnf_packages[@]}"); fi
             
             printf "🧩 ${Y}Installing mandatory packages...${N}\n"
         fi
 
-        # package install loop
-        for str in "${packages[@]}"; do
-            printf "📦 ${Y}Installing: $str"
-            if [[ "$installer" == "apt-get" ]]; then
-                q sudo apt-get update
-                if qo sudo apt-get install -y "$str"; then
-                    printf "\r📦 ${G}Installed : $str ✅\n"
+        if [[ "$PKG_MANAGER" == "apt-get" ]]; then
+            q sudo apt-get update -y
+            for str in "${packages[@]}"; do
+                printf "   📦 ${Y}Installing: $str"
+                if q sudo apt-get install -y "$str"; then
+                    printf "\r   📦 ${G}Installed : $str ✅\n"
                 else
-                    printf "\r📦 ${R}Failed    : $str ❌\n"
+                    printf "\r   📦 ${R}Failed    : $str ❌\n"
                 fi
-            elif [[ """$installer" == "dnf" ]]; then
-                if qo sudo dnf install -y "$str"; then
-                    printf "\r📦 ${G}Installed : $str ✅\n"
+                sleep 1
+            done
+        elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+            q sudo dnf update -y
+            for str in "${packages[@]}"; do
+                printf "   📦 ${Y}Installing: $str"
+                if q sudo dnf install -y "$str"; then
+                    printf "\r   📦 ${G}Installed : $str ✅\n"
                 else
-                    printf "\r📦 ${R}Failed    : $str ❌\n"
+                    printf "\r   📦 ${R}Failed    : $str ❌\n"
                 fi
-            fi
-            sleep 1
-        done
+                sleep 1
+            done
+        fi
     fi
 
-    if [[ "$1" == "sudo" ]]; then 
+    if [[ "$1" == "sudo" ]]; then
         if ! q command -v sudo || [[ ! -f "/etc/sudoers.d/stack" ]]; then
             local tmp
             tmp=$(mktemp /tmp/enable-sudo.XXXXXX) || { echo "❌ Failed to create temp file"; return 1; }
 
-            local installer
-            installer=$(pkgmanager)
-            if [[ "$installer" == "unknown" ]]; then
+            if [[ "$PKG_MANAGER" == "unknown" ]]; then
                 echo "❌ Unsupported OS — cannot determine package manager."
                 rm -f "$tmp"
                 return 1
             fi
 
-            printf "🌟 ${G}Enabling sudo... requires ${Y}root${N} access.\n"
-            printf "👉 You will be prompted for the ${Y}root password${N} (max 3 attempts).\n\n"
+            printf "🌟 ${G}Enabling sudo... requires elevated privileges.\n"
+            printf "👉 ${N}You may be prompted for your password.\n\n"
 
             cat > "$tmp" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 printf "📦 Installing sudo package...\n"
-$installer install -y sudo >/dev/null 2>&1
+$PKG_MANAGER install -y sudo >/dev/null 2>&1
 cat > /etc/sudoers.d/stack <<EOO
 $USER ALL=(ALL) NOPASSWD:ALL
 EOO
@@ -1890,26 +1955,20 @@ printf "✅ User '$USER' added to /etc/sudoers.d/stack\n"
 EOF
             chmod 700 "$tmp"
 
-            local success=0
-            local attempt=1
-            while (( attempt <= 3 )); do
-                printf "🔑 Attempt ${Y}$attempt${N}/3 — enter ${Y}root${N} password:\n"
-                if su -c "bash '$tmp'"; then
-                    success=1
-                    break
-                else
-                    echo "❌ Incorrect password or permission denied."
-                    (( attempt++ ))
-                    sleep 1
-                fi
-            done
+            # matching privilege method 
+            if command -v sudo >/dev/null 2>&1; then
+                echo "🔑 Using ${Y}sudo${N} for privilege escalation..."
+                sudo bash "$tmp"
+            else
+                echo "🔑 Using ${Y}root password${N} (non-Ubuntu system)..."
+                su -c "bash '$tmp'"
+            fi
 
+            local rc=$?
             rm -f "$tmp"
 
-            if (( success == 0 )); then
-                echo
-                echo "🚫 ${R}Failed to enable sudo after 3 attempts.${N}"
-                echo "💡 Please run the installer again with the correct password."
+            if (( rc != 0 )); then
+                echo "🚫 ${R}Failed to enable sudo.${N}"
                 exit 1
             fi
 
@@ -2006,7 +2065,7 @@ EOF
             s 1
             cat <<EOF
 ${C}👉 Check the deployment plan above. If not exists, then select
-${C}   ${Y}OPTION (1) ${C}to create or ${Y}OPTION (3) ${C}will ask for.
+${C}   ${Y}OPTION (1) ${C}to create or ${Y}OPTION (34) ${C}will ask for.
 
 ${C}👉 You can see the estimated resource distribution per node from 
 ${C}   the table. MB/day can vary from 25 to 50 (Current:${Y}${MB_PER_IP_DAY}${C} MB/day).
@@ -2014,9 +2073,11 @@ ${C}   the table. MB/day can vary from 25 to 50 (Current:${Y}${MB_PER_IP_DAY}${C
 ${Y}$(show "border" "*" 38 "h")
 ${G}(1)${N} Deployment Plan: ${C}Add / Modify 
 ${G}(2)${N} Deployment Plan: ${C}Automatic
-${G}(3) ${Y}⚠️  Deploy Elasticsearch ⚠️
 
-${G}(9)${N} Modify Elasticsearch Conf of Nodes
+${G}(3) ${Y}⚠️  Deploy Elasticsearch ⚠️
+${G}(4) ${Y}⚠️  Deploy Elasticsearch with ${G}Vectra Stream ⚠️
+
+${G}(9)${N} Modify Elasticsearch Config of Nodes
 
 ${R}(e)${N} Main Menu
 ${Y}$(show "border" "*" 38)${N}
@@ -2031,10 +2092,27 @@ EOF
                     check "system"  
                     check "plan"; s 1
                     show "plan"; s 1
-                    printf "${R}⚠️  OPTION (3) WILL REMOVE ALL STORED DATA IF EXISTS !!! ⚠️\n"
+                    printf "${R}⚠️  IF YOU PROCEED, ALL STORED DATA WILL BE DELETED !!!  ⚠️\n"
                     printf "\n☝️  ${Y}Check the current deployment plan above before proceeding! ☝️${N}\n\n"
                     if confirm; then
-                        deploy "elastic"; key
+                        deploy "elastic"
+                        container "ifexists" "fluent-bit" && container "start" "fluent-bit" || deploy "fluent-bit"
+                        key
+                    else
+                        echo "❌ Cancelled"
+                    fi
+                    ;;
+                4)  clear
+                    check "system"  
+                    check "plan"; s 1
+                    show "plan"; s 1
+                    printf "${R}⚠️  IF YOU PROCEED, ALL STORED DATA WILL BE DELETED !!!  ⚠️\n"
+                    printf "\n☝️  ${Y}Check the current deployment plan above before proceeding! ☝️${N}\n\n"
+                    if confirm; then
+                        deploy "elastic"
+                        check "vectra"
+                        container "ifexists" "fluent-bit" && container "start" "fluent-bit" || deploy "fluent-bit"
+                        key
                     else
                         echo "❌ Cancelled"
                     fi
@@ -2104,7 +2182,7 @@ EOF
 $(show "border" "*" 38 "h")
 ${Y}(A)${N} SET ALL AT ONCE
 
-${G}(1)${N} Enable ${Y}'$USER'${N} as Sudoer
+${G}(1)${N} Enable ${Y}'$USER'${N} as sudoer
 ${G}(2)${N} Install Mandatory Packages
 ${G}(3)${N} Setting SYS Params (sysctl+limits)
 ${G}(4)${N} Set Proxy
@@ -2332,7 +2410,7 @@ plan() {
         fi
 
         # cold nodes / rules: after 90 days and + every 90 days
-        if (( RETENTION_DAYS > 90 && RETENTION_DAYS <= 180 )); then
+        if (( RETENTION_DAYS > 90 && RETENTION_DAYS <= 360 )); then
             auto_cold=1
         elif (( RETENTION_DAYS > 180 )); then
             auto_cold=2
@@ -2455,6 +2533,9 @@ plan() {
 
 # factory reset the system
 reset_system() {
+    # detect os + package manager
+    detect_os
+
     echo
     echo "${R}⚠️  FACTORY RESET MODE INITIATED${N}"
     echo "This operation will completely remove all Docker data and packages."
@@ -2487,14 +2568,12 @@ reset_system() {
     echo
     # removing docker packages
     printf "${Y}Uninstalling Docker packages...⏳${N}"
-    local installer
-    installer=$(pkgmanager)
-    case "$installer" in
+    case "$PKG_MANAGER" in
         apt-get)
             q sudo apt-get remove --purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1
             ;;
         dnf)
-            q sudo "$installer" remove -y ddocker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1
+            q sudo "$PKG_MANAGER" remove -y ddocker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1
             ;;
         apk)
             q sudo apk del docker docker-cli containerd >/dev/null 2>&1
@@ -2521,13 +2600,13 @@ reset_system() {
 
     # removing additional packages
     printf "${Y}Uninstalling additional packages...⏳${N}"
-    case "$installer" in
+    case "$PKG_MANAGER" in
         apt-get)
             q sudo apt-get remove --purge -y bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
             q sudo apt-get autoremove -y >/dev/null 2>&1
             ;;
         dnf)
-            q sudo "$installer" remove -y bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
+            q sudo "$PKG_MANAGER" remove -y bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
             ;;
         apk)
             q sudo apk del bc ca-certificates curl git jq nano ncat openssl >/dev/null 2>&1
@@ -2549,6 +2628,9 @@ s() { local n="${1:-1}"; for ((i=0; i<n; i++)); do printf "\n"; done }
 
 # general set function
 set() {
+    # get os + package manager
+    detect_os
+
     # import signed certificate
     if [[ "$1" == "cert" ]]; then
         check "configpath"
@@ -2587,12 +2669,12 @@ set() {
             printf "Proxy is set: %s\n" $HTTP_PROXY
 
             # set proxy for different package managers and systems
-            if [[ "$installer" == "apt-get" ]]; then
+            if [[ "$PKG_MANAGER" == "apt-get" ]]; then
                 # For Debian/Ubuntu
                 sudo mkdir -p /etc/apt/apt.conf.d/
                 echo "Acquire::http::Proxy \"${PROXYSRV}\";" | sudo tee /etc/apt/apt.conf.d/95proxy
                 echo "Acquire::https::Proxy \"${PROXYSRV}\";" | sudo tee -a /etc/apt/apt.conf.d/95proxy
-            elif [[ "$installer" == "dnf" ]]; then
+            elif [[ "$PKG_MANAGER" == "dnf" ]]; then
                 # for rhel/centos/fedora
                 echo "proxy=${PROXYSRV}" | sudo tee -a  /etc/dnf/dnf.conf
             fi
@@ -2618,7 +2700,7 @@ EOF"
 
     # set os params necessary for elasticsearch env
     if [[ "$1" == "sysparams" ]]; then
-        if ! q command -v sudo; then install "sudo"; fi
+        if ! q command -v sudo || [[ ! -f "/etc/sudoers.d/stack" ]]; then install "sudo"; fi
         printf "📝 ${Y}Setting Parameters in ${C}/etc/sysctl.d/99-stack-sysctl.conf"
         qo sudo su <<EOP
         cat <<EOO > /etc/sysctl.d/99-stack-sysctl.conf
@@ -2830,8 +2912,8 @@ show() {
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Daily ingest     :" "$DAILY_MB MB ($DAILY_GB GB)"
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Retention days   :" "$RETENTION_DAYS"
         if [[ "$MODE" == "MULTI" ]]; then
-            printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Hot)  :" "$KEEP_WARM"
-            printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Warm) :" "$(( KEEP_COLD - KEEP_WARM ))"
+            (( WARM_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Hot)  :" "$KEEP_WARM"
+            (( COLD_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Warm) :" "$(( KEEP_COLD - KEEP_WARM ))"
             printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Cold) :" "$(( RETENTION_DAYS - KEEP_COLD ))"
         fi
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Replica factor   :" "$REPLICA_FACTOR"
@@ -2842,7 +2924,7 @@ show() {
         (( KEEP_HOT < 0 )) && KEEP_HOT=0
         (( KEEP_WARM < 0 )) && KEEP_WARM=0
         (( KEEP_COLD < 0 )) && KEEP_COLD=0
-
+       
         # ILM-aware check
         check "storage" "$TOTAL_DATA"
     fi
