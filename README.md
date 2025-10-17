@@ -36,7 +36,7 @@ You can also add your own authentication mechanism into haproxy.cfg like mTLS, O
 When you call one of these URLs below, it will ask for user/password.
 Default credential:
 ### username: admin
-### password: Elastic123!<br>
+### password: Elastic123!<br><br>
 
 ### URLs to be created
 HAProxy Stats (realtime metrics)
