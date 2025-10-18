@@ -364,28 +364,34 @@ check() {
         local total_data_gb="$2"
 
         ## Tier keep days
-        local keep_hot=${KEEP_WARM:-RETENTION_DAYS}
-        local keep_warm=$(( ${KEEP_COLD:-0} - ${KEEP_WARM:-0} ))
-        local keep_cold=$(( RETENTION_DAYS - ${KEEP_COLD:-0} ))
+
+        #if [[ -z "${KEEP_WARM}" || "${KEEP_WARM}" -eq 0 ]]; then keep_hot=$RETENTION_DAYS
+        #else keep_hot=$KEEP_WARM; fi
+
+        local keep_hot=${KEEP_HOT:-RETENTION_DAYS}
+        #local keep_warm=$(( ${KEEP_COLD:-0} - ${KEEP_WARM:-0} ))
+        local keep_warm=$(( RETENTION_DAYS - $keep_hot ))
+        local keep_cold=$(( RETENTION_DAYS - $keep_warm ))
+        
+        #echo "$keep_hot $keep_warm"; sleep 10
         
         (( keep_hot < 0 )) && keep_hot=0
         (( keep_warm < 0 )) && keep_warm=0
         (( keep_cold < 0 )) && keep_cold=0
         
-        # Daily ingest in GB
+        # daily ingest in GB
         if [[ -z "$RETENTION_DAYS" ]]; then RETENTION_DAYS=1; fi
         local daily_ingest_gb=$(( total_data_gb / RETENTION_DAYS ))
 
-        # Per-tier needs
-        local hot_need=$(( daily_ingest_gb * keep_hot ))
-        local warm_need=$(( daily_ingest_gb * keep_warm ))
-        local cold_need=$(( daily_ingest_gb * keep_cold ))
+        # per-tier needs
+        local hot_need=$(( daily_ingest_gb * KEEP_HOT ))
+        local warm_need=$(( daily_ingest_gb * KEEP_WARM ))
+        local cold_need=$(( daily_ingest_gb * KEEP_COLD ))
         
         if [[ "$MODE" == "MULTI"  ]]; then
             printf "${G}| ${C}%-50s      ${G}|\n" "Estimated Storage Cur/Req values(GB) per each node"
             echo "${G}|---------------------------------------------------------|"
-
-            # HOT
+            # hot
             if (( HOT_COUNT > 0 && hot_need > 0 )); then
                 local per_hot=$(echo "scale=1; $hot_need / $HOT_COUNT" | bc)
                 for i in $(seq 1 $TOTAL_COUNT); do
@@ -402,7 +408,7 @@ check() {
                 done
             fi
 
-            # WARM
+            # warm
             if (( WARM_COUNT > 0 && warm_need > 0 )); then
                 local per_warm=$(echo "scale=1; $warm_need / $WARM_COUNT" | bc)
                 for i in $(seq 1 $TOTAL_COUNT); do
@@ -419,7 +425,7 @@ check() {
                 done
             fi
 
-            # COLD
+            # cold
             if (( COLD_COUNT > 0 && cold_need > 0 )); then
                 local per_cold=$(echo "scale=1; $cold_need / $COLD_COUNT" | bc)
                 for i in $(seq 1 $TOTAL_COUNT); do
@@ -1447,9 +1453,9 @@ EOF
         local cfgfile="$cfgdir/ilm/vectra-metadata-policy.jsonc"
         local retention="${RETENTION_DAYS}d"
         local shardsize="${SHARD_SIZE}gb"
-        local hottier="${KEEP_HOT}d"
-        local warmtier="${KEEP_WARM}d"
-        local coldtier="${KEEP_COLD}d"
+        local hottier="${DAY_HOT}d"
+        local warmtier="${DAY_WARM}d"
+        local coldtier="${DAY_COLD}d"
         
         # create custom ilm policy based on user retention input
         cat > "$cfgfile" <<EOF
@@ -1654,25 +1660,26 @@ get() {
         local input
         if [[ $HOT_COUNT -gt 0 ]] && [[ $WARM_COUNT -gt 0 || $COLD_COUNT -gt 0 ]]; then
             while true; do
-                read -rp "👉 Day(s) to keep in hot tier 🔥 [default: ${RETENTION_DAYS}]: " input
-                input="${input:-$RETENTION_DAYS}"
+                read -rp "👉 Day(s) to keep in hot tier 🔥 [default: 1]: " input
+                input="${input:-1}"
                 if (( input > RETENTION_DAYS )); then printf "  ❌ Cannot exceed ${Y}$RETENTION_DAYS ${N}days.\n"; continue; fi
+                DAY_HOT=$input
                 KEEP_HOT=$input
                 break
             done
-        else KEEP_HOT=$RETENTION_DAYS
+        else DAY_HOT=$RETENTION_DAYS; KEEP_HOT=$RETENTION_DAYS
         fi
 
         # warm tier days
         if [[ $WARM_COUNT -gt 0 ]]; then
             while true; do
-                read -rp "👉 Move data into warm tier after 🌡️ [default: ${KEEP_HOT}]: " input
-                input="${input:-$KEEP_HOT}"
-                if [[ $input -lt $KEEP_HOT ]]; then printf "  ❌ Cannot be less than ${Y}$KEEP_HOT ${N}day(s).\n"; continue; fi
-                KEEP_WARM=$input
+                read -rp "👉 Move data into warm tier after 🌡️ [default: $((DAY_HOT + 1))]: " input
+                input="${input:-$((DAY_HOT + 1))}"
+                if [[ $input -lt $DAY_HOT || $input -eq $DAY_HOT ]]; then printf "  ❌ Cannot be equal or less than ${Y}$DAY_HOT ${N}day(s).\n"; continue; fi
+                DAY_WARM=$input
                 break
             done
-        else KEEP_WARM=0
+        else DAY_WARM=0; KEEP_WARM=0
         fi
         
         # cold tier days
@@ -1682,27 +1689,35 @@ get() {
                 read -rp "👉 Move data into cold tier after ❄️ [default: ${COLD_DEFAULT}]: " input
                 input="${input:-$COLD_DEFAULT}"
                 if [[ $input -lt $(( WARM_MOVE + 1 )) ]]; then printf "  ❌ Cannot be less than ${Y}$(( WARM_MOVE + 1 )) ${N}day(s).\n"; continue; fi
-                KEEP_COLD=$input
+                DAY_COLD=$input
                 break
             done
-        else KEEP_COLD=0
+            KEEP_WARM=$((DAY_COLD - DAY_WARM))
+            KEEP_COLD=$((RETENTION_DAYS - DAY_COLD))
+        else DAY_COLD=0; KEEP_COLD=0; KEEP_WARM=$((RETENTION_DAYS - DAY_HOT))
         fi
+
+        # set warm as final if cold tier exists
+        
 
         # calculating rough daily ingest value 
         DAILY_INGEST=$(( TOTAL_IPS * MB_PER_IP_DAY / 1024 ))
-                
+
         s 1
-        echo "${G}✔ Parameters set"
-        echo "${N}   Monitored Hosts      : ${Y}$TOTAL_IPS"
-        echo "${N}   Retention days       : ${Y}$RETENTION_DAYS"
-        echo "${N}   Daily volume         : ${Y}$DAILY_INGEST GB"
-        if [[ $HOT_COUNT -gt 0 ]]; then echo "${N}   Keep in HOT Tier for : ${Y}$KEEP_HOT day(s)"; fi
-        if [[ $WARM_COUNT -gt 0 ]]; then echo "${N}   Move to WARM tier on : ${Y}$KEEP_WARM.day"; fi
-        if [[ $COLD_COUNT -gt 0 ]]; then echo "${N}   Move to COLD tier on : ${Y}$KEEP_COLD.day"; fi
+        echo "${G}✅ Parameters set"
+        echo "${N}   ❯ Monitored Hosts      : ${Y}$TOTAL_IPS"
+        echo "${N}   ❯ Retention days       : ${Y}$RETENTION_DAYS"
+        echo "${N}   ❯ Daily volume         : ${Y}$DAILY_INGEST GB"
+        if [[ $HOT_COUNT -gt 0 ]]; then echo "${N}   Keep in HOT Tier for : ${Y}$DAY_HOT day(s)"; fi
+        if [[ $WARM_COUNT -gt 0 ]]; then echo "${N}   Move to WARM tier on : ${Y}$(($DAY_HOT + 1)).day"; fi
+        if [[ $COLD_COUNT -gt 0 ]]; then echo "${N}   Move to COLD tier on : ${Y}$DAY_COLD.day"; fi
         
         setvar "TOTAL_IPS" "TOTAL_IPS"
         setvar "RETENTION_DAYS" "RETENTION_DAYS"
         setvar "DAILY_INGEST" "DAILY_INGEST"
+        setvar "DAY_HOT" "DAY_HOT"
+        setvar "DAY_WARM" "DAY_WARM"
+        setvar "DAY_COLD" "DAY_COLD"
         setvar "KEEP_HOT" "KEEP_HOT"
         setvar "KEEP_WARM" "KEEP_WARM"
         setvar "KEEP_COLD" "KEEP_COLD"
@@ -2017,7 +2032,7 @@ ${G}(4)${N} (Re)deploy Kibana
 ${G}(5)${N} (Re)deploy Portainer
   ${G}(5a)${N} Restart Portainer
 
-${R}(e)${N} Main Menu
+${Y}(e)${N} Main Menu
 ${Y}$(show "border" "*" 34)${N}
 
 EOF
@@ -2054,7 +2069,9 @@ EOF
 
     # elasticsearch menu
     if [[ $1 == "elastic" ]]; then
-        # check base installation
+        # check base paths
+        check "datapath" || return 1
+        # check docker installation
         check "docker" || return 1
         
         while :; do
@@ -2079,7 +2096,7 @@ ${G}(4) ${Y}⚠️  Deploy Elasticsearch with ${G}Vectra Stream ⚠️
 
 ${G}(9)${N} Modify Elasticsearch Config of Nodes
 
-${R}(e)${N} Main Menu
+${Y}(e)${N} Main Menu
 ${Y}$(show "border" "*" 38)${N}
 
 EOF
@@ -2142,7 +2159,7 @@ ${G}(4)${N} VECTRA
 
 ${G}(5)${R} !REMOVE EVERYTHING!
 
-${R}(e)${N} EXIT
+${Y}(e)${N} EXIT
 ${Y}$(show "border" "*" 32)${N}
 
 EOF
@@ -2192,7 +2209,7 @@ ${G}(7)${N} Generate CSR
   ${G}(7a)${N} Import certificate
   ${G}(7b)${N} (Re)generate certificate
   
-${R}(e)${N} Main Menu
+${Y}(e)${N} Main Menu
 ${Y}$(show "border" "*" 38)${N}
 
 EOF
@@ -2239,7 +2256,7 @@ ${G}(2)${N} Install Elastic Templates
   ${G}(2b)${N} Create/Rollover Initial Indices
 ${G}(3)${N} Install Kibana Objects
 
-${R}(e)${N} Return to main menu
+${Y}(e)${N} Return to main menu
 ${Y}$(show "border" "*" 38)${N}
 
 EOF
@@ -2912,15 +2929,15 @@ show() {
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Daily ingest     :" "$DAILY_MB MB ($DAILY_GB GB)"
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Retention days   :" "$RETENTION_DAYS"
         if [[ "$MODE" == "MULTI" ]]; then
-            (( WARM_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Hot)  :" "$KEEP_WARM"
-            (( COLD_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Warm) :" "$(( KEEP_COLD - KEEP_WARM ))"
-            printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Cold) :" "$(( RETENTION_DAYS - KEEP_COLD ))"
+            printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Hot)  :" "$KEEP_HOT"
+            (( WARM_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Warm) :" "$KEEP_WARM"
+            (( COLD_COUNT > 0 )) && printf "| ${C}%-18s ${N}%-37s${G}|\n" "Tier days (Cold) :" "$KEEP_COLD"
         fi
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Replica factor   :" "$REPLICA_FACTOR"
         printf "| ${C}%-18s ${N}%-37s${G}|\n" "Total storage    :" "$TOTAL_DATA GB"
         echo "+${G}---------------------------------------------------------+"
 
-        # safety: ensure no negatives
+        # ensure no negatives
         (( KEEP_HOT < 0 )) && KEEP_HOT=0
         (( KEEP_WARM < 0 )) && KEEP_WARM=0
         (( KEEP_COLD < 0 )) && KEEP_COLD=0
@@ -2930,7 +2947,7 @@ show() {
     fi
 }
 
-# vectra function
+# vectra content function
 vectra() {
     local vectradir=${DATA[base]}/vectra
     local ELASTIC_PATH="$vectradir/elastic"
