@@ -50,6 +50,7 @@ When you call one of these URLs below, it will ask for user/password.
 Default credential:
 
 username: admin
+
 password: Elastic123!
 
 ### URLs to be created
