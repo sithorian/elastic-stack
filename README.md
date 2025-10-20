@@ -1,5 +1,6 @@
 # SIMPLE ELASTICSEARCH STACK INSTALLER
 Full stack with lots of features written in bash
+
 Supported platforms
 Debian/Ubuntu
 Centos/RHEL
