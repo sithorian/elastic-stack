@@ -1,10 +1,14 @@
 # SIMPLE ELASTICSEARCH STACK INSTALLER
 Full stack with lots of features written in bash
+Supported platforms
+Debian/Ubuntu
+Centos/RHEL
 
 ## DISCLAIMER
 This is still in testing! I am not a professional coder so expect some typos and not-efficient approaches so don't blame me :)
 
 Features to be added
+  - Alpine Linux support
   - ÈS security option (optional)
   - Logstash (optional)
   - ES Fleet Server + Agent (optional)
