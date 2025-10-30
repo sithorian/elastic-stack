@@ -1810,7 +1810,7 @@ install() {
     # docker installation
     if [[ "$1" == "docker" ]]; then
         # Install Docker using official script
-        printf "📦 ${Y}Installing Docker..."
+        printf "📦  ${Y}Installing Docker..."
         
         # packages to be removed before docker installation
         local toberemoved=( "containerd" "docker" "docker-client" "docker-client-latest" "docker.io" "docker-doc" "docker-compose" "podman-docker" "runc" "docker-common" "docker-latest" "docker-latest-logrotate" "docker-logrotate" "docker-engine" )
@@ -1847,15 +1847,15 @@ install() {
         elif [[ "$PKG_MANAGER" == "apk" ]]; then
             echo "apk"
         fi 
-        printf "\r📦 ${G}Installing docker...✅\n"
+        printf "\r📦  ${G}Installing docker...✅\n"
 
         printf "▶️  ${Y}Starting Docker Service..."
         q sudo systemctl enable --now docker
         printf "\r▶️  ${G}Starting Docker Service...✅\n"
 
         # add current user to docker group
-        printf "📝 ${Y}Adding user:${C}'$USER' ${G}into Docker Group"; sudo usermod -aG docker $USER
-        printf "\r📝 ${G}Adding user:${C}'$USER' ${G}into Docker Group...✅\n\n"
+        printf "📝  ${Y}Adding user:${C}'$USER' ${G}into Docker Group"; sudo usermod -aG docker $USER
+        printf "\r📝  ${G}Adding user:${C}'$USER' ${G}into Docker Group...✅\n\n"
 
         # verify installation
         if q sudo docker run --rm hello-world; then
@@ -1906,7 +1906,7 @@ install() {
         local packages=()
         if [[ -n "$2" ]]; then
             packages=("$2")
-            printf "🧩 ${Y}Installing requested package: $2${N}\n"
+            printf "🧩  ${Y}Installing requested package: $2${N}\n"
         else
             packages=( "bc" "ca-certificates" "curl" "git" "jq" "nano" "ncat" "openssl" )
             apt_packages=()
@@ -1915,7 +1915,7 @@ install() {
             if [[ "$PKG_MANAGER" == "apt-get" ]]; then packages+=("${apt_packages[@]}"); fi
             if [[ "$PKG_MANAGER" == "dnf" ]]; then packages+=("${dnf_packages[@]}"); fi
             
-            printf "🧩 ${Y}Installing mandatory packages...${N}\n"
+            printf "🧩  ${Y}Installing mandatory packages...${N}\n"
         fi
 
         if [[ "$PKG_MANAGER" == "apt-get" ]]; then
@@ -1923,9 +1923,9 @@ install() {
             for str in "${packages[@]}"; do
                 printf "   📦 ${Y}Installing: $str"
                 if q sudo apt-get install -y "$str"; then
-                    printf "\r   📦 ${G}Installed : $str ✅\n"
+                    printf "\r   📦  ${G}Installed : $str ✅\n"
                 else
-                    printf "\r   📦 ${R}Failed    : $str ❌\n"
+                    printf "\r   📦  ${R}Failed    : $str ❌\n"
                 fi
                 sleep 1
             done
@@ -1966,12 +1966,12 @@ cat > /etc/sudoers.d/stack <<EOO
 $USER ALL=(ALL) NOPASSWD:ALL
 EOO
 chmod 440 /etc/sudoers.d/stack
-echo "✅ User '$USER' added to /etc/sudoers.d/stack"
+echo "✅  User '$USER' added to /etc/sudoers.d/stack"
 EOF
             chmod 700 "$tmp"
 
-            echo "🌟 ${G}Enabling sudo... elevated privileges required.${N}"
-            echo "👉 You may be prompted for your password."
+            echo "🌟  ${G}Enabling sudo... elevated privileges required.${N}"
+            echo "👉  You may be prompted for your password."
 
             # Prefer su on RHEL/CentOS; sudo on Ubuntu/Debian
             if [[ "$PKG_MANAGER" =~ ^(dnf|yum)$ ]]; then
@@ -1988,9 +1988,9 @@ EOF
                 exit 1
             fi
 
-            echo "✅ ${G}Sudo installed and configured successfully.${N}"
+            echo "✅  ${G}Sudo installed and configured successfully.${N}"
         else
-            echo "✅ ${C}sudo${N} is already installed... skipping."
+            echo "✅  ${C}sudo${N} is already installed... skipping."
         fi
     fi
 }
