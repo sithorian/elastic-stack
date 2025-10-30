@@ -1840,9 +1840,9 @@ install() {
             q sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin     -y
         # centos/rhel/fedora distro
         elif [[ "$OS_ID" =~ (centos|redhat) ]]; then
-            qe sudo $PKG_MANAGER -y install dnf-plugins-core
-            qe sudo $PKG_MANAGER config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-            qe sudo $PKG_MANAGER -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            q sudo $PKG_MANAGER -y install dnf-plugins-core
+            q sudo $PKG_MANAGER config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            q sudo $PKG_MANAGER -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         # alpine distro
         elif [[ "$PKG_MANAGER" == "apk" ]]; then
             echo "apk"
@@ -1954,29 +1954,30 @@ install() {
                 return 1
             fi
 
-            printf "🌟 ${G}Enabling sudo... requires elevated privileges.\n"
-            printf "👉 ${N}You may be prompted for your password.\n\n"
-
             cat > "$tmp" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-printf "📦 Installing sudo package...\n"
-$PKG_MANAGER install -y sudo >/dev/null 2>&1
+echo "📦 Installing sudo package..."
+$PKG_MANAGER install -y sudo >/dev/null 2>&1 || {
+    echo "❌ Failed to install sudo using $PKG_MANAGER"
+    exit 1
+}
 cat > /etc/sudoers.d/stack <<EOO
 $USER ALL=(ALL) NOPASSWD:ALL
 EOO
 chmod 440 /etc/sudoers.d/stack
-printf "✅ User '$USER' added to /etc/sudoers.d/stack\n"
+echo "✅ User '$USER' added to /etc/sudoers.d/stack"
 EOF
             chmod 700 "$tmp"
 
-            # matching privilege method 
-            if command -v sudo >/dev/null 2>&1; then
-                echo "🔑 Using ${Y}sudo${N} for privilege escalation..."
-                sudo bash "$tmp"
-            else
-                echo "🔑 Using ${Y}root password${N} (non-Ubuntu system)..."
+            echo "🌟 ${G}Enabling sudo... elevated privileges required.${N}"
+            echo "👉 You may be prompted for your password."
+
+            # Prefer su on RHEL/CentOS; sudo on Ubuntu/Debian
+            if [[ "$PKG_MANAGER" =~ ^(dnf|yum)$ ]]; then
                 su -c "bash '$tmp'"
+            else
+                sudo bash "$tmp" 2>/dev/null || su -c "bash '$tmp'"
             fi
 
             local rc=$?
@@ -1987,9 +1988,9 @@ EOF
                 exit 1
             fi
 
-            printf "✅ ${G}Sudo installed and configured successfully.${N}\n\n"
+            echo "✅ ${G}Sudo installed and configured successfully.${N}"
         else
-            printf "✅ ${C}sudo${N} is already installed... skipping.\n"
+            echo "✅ ${C}sudo${N} is already installed... skipping."
         fi
     fi
 }
