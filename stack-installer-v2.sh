@@ -7,7 +7,7 @@
 
 ### variables ###
 STREAM_INPUT_PORT=9009                  # Port to set in Stream 
-ES_VERSION="9.1.5"                      # Elasticsearch+Kibana container version
+ES_VERSION="9.2.0"                      # Elasticsearch+Kibana container version
 ES_BOOTSTRAP_PASSWORD="Elastic123!"     # Bootstrap password for initialization / can be changed later from Kibana
 CLUSTER_NAME="stream"                   # Elasticsearch cluster name
 DOCKER=""
@@ -287,20 +287,20 @@ check() {
         
         if [[ ! -d "$3" ]]; then
             check "datapath"
-            printf "📂 ${Y}Creating data and log dirs of ${C}$5"
+            printf "📂  ${Y}Creating data and log dirs of ${C}$5"
             q sudo mkdir -p "$3"; q sudo mkdir -p "$4"
             q sudo chown -R $USER:docker "$3" "$4"
-            printf "\r📂 ${G}Creating data and log dirs of ${C}$5...✅\n"
+            printf "\r📂  ${G}Creating data and log dirs of ${C}$5...✅\n"
         fi
     fi
     # check if fluent-bit storage dir exists
     if [[ "$type" == "fbpath" ]]; then
         if [[ ! -d "${DATA[base]}/fluent-bit/storage"  ]]; then
             check "datapath"
-            printf "📂 ${Y}Creating Fluent-Bit data folder"
+            printf "📂  ${Y}Creating Fluent-Bit data folder"
             sudo mkdir -p "${DATA[base]}/fluent-bit/storage"
             sudo chown -R $USER:docker "${DATA[base]}/fluent-bit"
-            printf "\r📂 ${G}Creating Fluent-Bit data folder...✅\n"
+            printf "\r📂  ${G}Creating Fluent-Bit data folder...✅\n"
         fi
     fi
     # check if kibana is up and running
@@ -604,10 +604,10 @@ container() {
     # if container exists
     if [[ "$action" == "ifexists" ]]; then
         if sudo docker ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
-            printf "📦 ${G}Container: ${C}$name ${G}exists (running or stopped)\n"
+            printf "📦  ${G}Container: ${C}$name ${G}exists (running or stopped)\n"
             return 0
         else
-            printf "❌ ${G}Container: ${C}$name ${G}does not exist...proceeding\n"
+            printf "❌  ${G}Container: ${C}$name ${G}does not exist...proceeding\n"
             return 1
         fi
     fi
@@ -630,9 +630,9 @@ container() {
     # restart container
     if [[ "$action" == "restart" ]]; then
         if sudo docker ps -a --format '{{.Names}}' | grep -q "^$name\$"; then
-            printf "⚙️  ${Y}Restarting container: ${C}$name"
+            printf "⚙️   ${Y}Restarting container: ${C}$name"
             q sudo docker restart $name
-            printf "\r🔄 ${G}Restarting container: ${C}$name${G}...done\n"
+            printf "\r🔄  ${G}Restarting container: ${C}$name${G}...done\n"
         else
             printf "⚠️  ${Y}Container ${C}$name ${Y}not found...proceeding\n"
         fi
@@ -742,7 +742,7 @@ deploy() {
             check "espath" "remove" "$datadir" "$logdir" "$name"
 
             # deploy es node container
-            printf "📦 ${Y}Deploying Elasticsearch node: ${C}$name ${N}(type: ${C}$type${N})"
+            printf "📦  ${Y}Deploying Elasticsearch node: ${C}$name ${N}(type: ${C}$type${N})"
             q sudo docker run -d \
                 --name $name \
                 --net esnet \
@@ -757,7 +757,7 @@ deploy() {
                 -v "$logdir":/usr/share/elasticsearch/logs \
                 -e ELASTIC_PASSWORD=$ES_BOOTSTRAP_PASSWORD \
                 "docker.elastic.co/elasticsearch/elasticsearch:$ES_VERSION"
-            printf "\r📦 ${G}Deploying Elasticsearch node: ${C}$name ${N}(type: ${C}$type${N})...✅\n"
+            printf "\r📦  ${G}Deploying Elasticsearch node: ${C}$name ${N}(type: ${C}$type${N})...✅\n"
             container "ifrunning" "$name"
             ((CONT_MEM++))
             s 1
@@ -858,7 +858,7 @@ deploy() {
         # wait for master1 to be up and healthy
         check "elastic"
         # deploy kibana
-        printf "📦 ${Y}Deploying Kibana"
+        printf "📦  ${Y}Deploying Kibana"
         q sudo docker run -d \
             --name kibana \
             --net esnet \
@@ -871,7 +871,7 @@ deploy() {
             -v "$datadir":/usr/share/kibana/data \
             -v "$logdir":/usr/share/kibana/logs \
             "docker.elastic.co/kibana/kibana:$ES_VERSION"
-        printf "\r📦 ${G}Deploying Kibana...✅\n"
+        printf "\r📦  ${G}Deploying Kibana...✅\n"
         container "ifrunning" "kibana"
     fi
 
@@ -1058,7 +1058,7 @@ EOF
                 echo "-Xmx${JVM_MEM[$index]}g"
             } > "$file2"
             ((index++))
-            printf "📝 ${G}Config file generated for: ${C}$master\n"
+            printf "📝  ${G}Config file generated for: ${C}$master\n"
         done
 
         # generate hot node configs
@@ -1141,7 +1141,7 @@ EOF
     if [[ "$1" == "fluent-bit" ]]; then
         check "configpath"
 
-        printf "📝 ${Y}Fluent-Bit conf file generation..."
+        printf "📝  ${Y}Fluent-Bit conf file generation..."
         # fluent-bit config variables
         local cfgfile="${DATA[base]}/config/fluent-bit.cfg"
         local buffersize="10M"
@@ -1257,15 +1257,15 @@ EOF
 EOF
             done
         } >"$cfgfile"
-        printf "\r📝 ${G}Fluent-Bit conf file generation...✅\n"
-        printf "👉 ${G}Conf file has been saved as => ${C}${DATA[base]}/config/fluent-bit.cfg\n"
+        printf "\r📝  ${G}Fluent-Bit conf file generation...✅\n"
+        printf "👉  ${G}Conf file has been saved as => ${C}${DATA[base]}/config/fluent-bit.cfg\n"
     fi
 
     # haproxy Conf
     if [[ "$1" == "haproxy" ]]; then
         check "configpath"
 
-        printf "📝 ${Y}HAproxy conf file generation"
+        printf "📝  ${Y}HAproxy conf file generation"
         local cfgfile="${DATA[base]}/config/haproxy.cfg"
         local HOT_COUNT="${HOT_COUNT}"
 
@@ -1370,8 +1370,8 @@ EOF
                 printf "\n"
             fi
         } >"$cfgfile"
-        printf "\r📝 ${G}HAproxy conf file generation...✅\n"
-        printf "👉 ${G}Conf file has been saved as => ${C}$cfgfile\n"
+        printf "\r📝  ${G}HAproxy conf file generation...✅\n"
+        printf "👉  ${G}Conf file has been saved as => ${C}$cfgfile\n"
     fi
 
     # haproxy Authentication
@@ -1502,11 +1502,11 @@ EOF
   }
 }
 EOF
-        printf "\r📝 ${G}ILM conf file generation...✅ => ${C}$cfgfile\n"
+        printf "\r📝  ${G}ILM conf file generation...✅ => ${C}$cfgfile\n"
     fi
 
     if [[ "$1" == "kibana" ]]; then
-        printf "📝 ${Y}Kibana conf file generation"
+        printf "📝  ${Y}Kibana conf file generation"
         local cfgdir="${DATA[base]}/config"
         local cfgfile="$cfgdir/kibana.yml"
         # check if config dir exists
@@ -1859,27 +1859,27 @@ install() {
 
         # verify installation
         if q sudo docker run --rm hello-world; then
-            printf "✅ ${G}Docker Verification Done...proceeding\n"
+            printf "✅  ${G}Docker Verification Done...proceeding\n"
     
             # creating default net
             printf "🛠️  ${Y}Creating Default Docker Network"; q sudo docker network create -d bridge esnet
             printf "\r🛠️  ${G}Creating Default Docker Network...✅\n"
-            printf "   🌐 ${N}Created Docker network: ${C}esnet\n\n"
+            printf "   🌐  ${N}Created Docker network: ${C}esnet\n\n"
 
             # pulling necessary images for using later
             printf "🐳 ${G}Pulling Necessary Docker Images...\n"
-            printf "   📥 ${Y}Pulling Elasticsearch:${ES_VERSION}..."
+            printf "   📥  ${Y}Pulling Elasticsearch:${ES_VERSION}..."
             q sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
-            printf "\r   📥 ${G}Pulling Elasticsearch:${ES_VERSION}...✅\n"
-            printf "   📥 ${Y}Pulling Kibana:${ES_VERSION}..."
+            printf "\r   📥  ${G}Pulling Elasticsearch:${ES_VERSION}...✅\n"
+            printf "   📥  ${Y}Pulling Kibana:${ES_VERSION}..."
             q sudo docker pull docker.elastic.co/kibana/kibana:${ES_VERSION}
-            printf "\r   📥 ${G}Pulling Kibana:${ES_VERSION}...${G}✅\n"
-            printf "   📥 ${Y}Pulling HAProxy:latest..."
+            printf "\r   📥  ${G}Pulling Kibana:${ES_VERSION}...${G}✅\n"
+            printf "   📥  ${Y}Pulling HAProxy:latest..."
             q sudo docker pull haproxy:latest
-            printf "\r   📥 ${G}Pulling HAProxy:latest...${G}✅\n"
-            printf "   📥 ${Y}Pulling Fluent-Bit:latest..."
+            printf "\r   📥  ${G}Pulling HAProxy:latest...${G}✅\n"
+            printf "   📥  ${Y}Pulling Fluent-Bit:latest..."
             q sudo docker pull cr.fluentbit.io/fluent/fluent-bit:latest
-            printf "\r   📥 ${G}Pulling Fluent-Bit:latest...${G}✅\n"
+            printf "\r   📥  ${G}Pulling Fluent-Bit:latest...${G}✅\n"
 
             # haproxy Deployment
             deploy "haproxy"
@@ -1957,7 +1957,7 @@ install() {
             cat > "$tmp" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-echo "📦 Installing sudo package..."
+echo "📦  Installing sudo package..."
 $PKG_MANAGER install -y sudo >/dev/null 2>&1 || {
     echo "❌ Failed to install sudo using $PKG_MANAGER"
     exit 1
@@ -2719,7 +2719,7 @@ EOF"
     # set os params necessary for elasticsearch env
     if [[ "$1" == "sysparams" ]]; then
         if ! q command -v sudo || [[ ! -f "/etc/sudoers.d/stack" ]]; then install "sudo"; fi
-        printf "📝 ${Y}Setting Parameters in ${C}/etc/sysctl.d/99-stack-sysctl.conf"
+        printf "📝  ${Y}Setting Parameters in ${C}/etc/sysctl.d/99-stack-sysctl.conf"
         qo sudo su <<EOP
         cat <<EOO > /etc/sysctl.d/99-stack-sysctl.conf
 ######## VM / mmap / swap ########
@@ -2751,10 +2751,10 @@ net.ipv4.tcp_mtu_probing = 1
 EOO
 sysctl -p /etc/sysctl.d/99-stack-sysctl.conf
 EOP
-        printf "\r✅ ${G}Setting Parameters in ${C}/etc/sysctl.d/99-stack-sysctl.conf${G}...done\n"
+        printf "\r✅  ${G}Setting Parameters in ${C}/etc/sysctl.d/99-stack-sysctl.conf${G}...done\n"
     
         # set limits
-        printf "📝 ${Y}Setting Limits in /etc/security/limits.d/99-stack-limits.conf"
+        printf "📝  ${Y}Setting Limits in /etc/security/limits.d/99-stack-limits.conf"
         qo sudo su <<EOL
         echo "ulimit -n 65535" >> /etc/profile
         cat <<EOO > /etc/security/limits.d/99-stack-limits.conf
@@ -2770,7 +2770,7 @@ EOO
     ulimit -n 65535
     printf "\n"
 EOL
-        printf "\r✅ ${G}Setting Limits in ${C}/etc/security/limits.d/99-stack-limits.conf${G}...done\n"
+        printf "\r✅  ${G}Setting Limits in ${C}/etc/security/limits.d/99-stack-limits.conf${G}...done\n"
 
     fi
 }
@@ -3055,7 +3055,7 @@ vectra() {
         local rf_metadata_x509="60s"
 
         # create ILM default policy
-        printf "📝 ${Y}ILM Default Policy\n${N}"
+        printf "📝  ${Y}ILM Default Policy\n${N}"
         for ILM_PATH in $(ls $ELASTIC_PATH/ilm/*.jsonc); do
             ILM_NAME=$(basename "$ILM_PATH" .jsonc)
 
@@ -3065,7 +3065,7 @@ vectra() {
         done
         s 1
         # create template components
-        printf "📝 ${Y}Template Components\n${N}"
+        printf "📝  ${Y}Template Components\n${N}"
         for COMPONENT_PATH in "$ELASTIC_PATH"/component_templates/*.jsonc; do
             COMPONENT_NAME=$(basename "$COMPONENT_PATH" .jsonc)
             PAYLOAD=$(jq . "$COMPONENT_PATH")
@@ -3075,7 +3075,7 @@ vectra() {
         done
         s 1
         # create index templates
-        printf "📝 ${Y}Index Templates\n${N}"
+        printf "📝  ${Y}Index Templates\n${N}"
         for TEMPLATE_PATH in "$ELASTIC_PATH"/*.jsonc; do
             TEMPLATE_NAME=$(basename "$TEMPLATE_PATH" .jsonc)
             refresh="rf_$TEMPLATE_NAME"
@@ -3108,7 +3108,7 @@ vectra() {
         
         # get master1 address
         local MASTER_IP=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' master1)
-        printf "✅ Elastic master1 is running.\n"
+        printf "✅  Elastic master1 is running.\n"
 
         # stop fluent-bit if running to prevent false indexes
         container "ifexists" "fluent-bit" && container "stop" "fluent-bit"
@@ -3143,12 +3143,12 @@ vectra() {
 
                 # verify creation
                 if curl -s "http://$MASTER_IP:9200/_cat/indices/${expected}" | grep -q "${expected}";   then
-                    printf "✅ ${G}Bootstrapped $TEMPLATE_NAME → ${C}$expected"
+                    printf "✅  ${G}Bootstrapped $TEMPLATE_NAME → ${C}$expected"
                 else
                     # fallback: look for any -000001 index for this template
                     created=$(q curl -s "http://$MASTER_IP:9200/_cat/indices/${TEMPLATE_NAME}-*" | awk  '{print $3}' | grep "${TEMPLATE_NAME}-.*-000001" | head -n1)
                     if [[ -n "$created" ]]; then
-                        printf "✅ Bootstrapped ${Y}$TEMPLATE_NAME → ${C}$created (detected by fallback)\n"
+                        printf "✅  Bootstrapped ${Y}$TEMPLATE_NAME → ${C}$created (detected by fallback)\n"
                     else
                         printf "⚠️  Failed to verify bootstrap for ${Y}$TEMPLATE_NAME\n"
                     fi
@@ -3180,9 +3180,9 @@ vectra() {
         check "kibana"; local status=$?; if [[ $status -ne 0 ]]; then s 1; return 1; fi
         local KIBANA_IP=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kibana)
 
-        printf "📝 ${Y}Importing Kibana Saved Objects...⏳\n"
+        printf "📝  ${Y}Importing Kibana Saved Objects...⏳\n"
         for filename in $(ls -S "$KIBANA_PATH"/*.ndjson | tac); do
-            printf "📝 ${Y}Importing Object: ${C}$filename${N}\n"
+            printf "📝  ${Y}Importing Object: ${C}$filename${N}\n"
             # check erros in saved objects
             if [[ "$filename" == *AIO* ]]; then
                 local tmp=$(mktemp --suffix=".ndjson")
@@ -3194,7 +3194,7 @@ vectra() {
         done
         rm -fr /tmp/tmp.ndjson /tmp/kibana.ndjson
 
-        printf "📝 ${G}Importing Kibana Saved Objects...✅\n"
+        printf "📝  ${G}Importing Kibana Saved Objects...✅\n"
         printf "\n💡 ${R}You must check the imported dashboards, queries and views\n"
         printf "💡 ${R}from ${Y}Stack Management => Saved Objects (Main Menu)${R}.\n"
         printf "💡 ${R}Feel free to re-import manually if something is missing\n"
