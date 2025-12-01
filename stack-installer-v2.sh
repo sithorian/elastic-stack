@@ -1229,7 +1229,6 @@ EOF
 @SET retrylimit=3
 @SET storagelimit=1G
 @SET trace=off
-
 EOF
             local type
             for type in beacon dcerpc dhcp dns httpsessioninfo isession kerberos_txn \
@@ -1253,7 +1252,6 @@ EOF
     retry_limit         \${retrylimit}
     workers             ${workers[$type]}
     alias               es.${type}
-
 EOF
             done
         } >"$cfgfile"
@@ -1908,7 +1906,7 @@ install() {
             packages=("$2")
             printf "🧩  ${Y}Installing requested package: $2${N}\n"
         else
-            packages=( "bc" "ca-certificates" "curl" "git" "jq" "nano" "ncat" "openssl" )
+            packages=( "bc" "ca-certificates" "curl" "git" "jq" "nano" "ncat" "openssl" "whois")
             apt_packages=()
             dnf_packages=()
 
