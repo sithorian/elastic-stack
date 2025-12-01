@@ -7,7 +7,7 @@
 
 ### variables ###
 STREAM_INPUT_PORT=9009                  # Port to set in Stream 
-ES_VERSION="9.2.0"                      # Elasticsearch+Kibana container version
+ES_VERSION="9.2.1"                      # Elasticsearch+Kibana container version
 ES_BOOTSTRAP_PASSWORD="Elastic123!"     # Bootstrap password for initialization / can be changed later from Kibana
 CLUSTER_NAME="stream"                   # Elasticsearch cluster name
 DOCKER=""
