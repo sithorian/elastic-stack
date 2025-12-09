@@ -798,7 +798,7 @@ deploy() {
             -p ${STREAM_INPUT_PORT}:9999 \
             -v ${DATA[base]}/config/fluent-bit.cfg:/fluent-bit/etc/fluent-bit.conf \
             -v ${DATA[base]}/fluent-bit/storage:/storage \
-            cr.fluentbit.io/fluent/fluent-bit:latest-debug
+            cr.fluentbit.io/fluent/fluent-bit:latest
         printf "\r📦 ${G}Deploying Fluent-Bit...✅\n"
         container "ifrunning" "fluent-bit"
     fi
